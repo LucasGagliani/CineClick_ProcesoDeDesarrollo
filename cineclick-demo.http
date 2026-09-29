@@ -1,0 +1,177 @@
+# Requests para probar la API a mano.
+# Los ids asumen una base recien creada (se puede borrar la carpeta data/ y volver a arrancar).
+
+### Login con el admin
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@cineclick.com",
+  "password": "admin123"
+}
+
+### Login con password incorrecta -> 401
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@cineclick.com",
+  "password": "cualquiera"
+}
+
+
+# ---------- Peliculas ----------
+
+### Listar peliculas
+GET http://localhost:8080/api/peliculas
+
+### Pelicula que no existe -> 404
+GET http://localhost:8080/api/peliculas/999999
+
+### Id que no es un numero -> 400
+GET http://localhost:8080/api/peliculas/abc
+
+### Crear pelicula (queda con id 3)
+POST http://localhost:8080/api/peliculas
+Content-Type: application/json
+
+{
+  "titulo": "Matrix",
+  "sinopsis": "Un programador descubre que la realidad es una simulacion.",
+  "duracionMinutos": 136,
+  "clasificacion": "+13",
+  "genero": "CIENCIA_FICCION",
+  "idioma": "Subtitulada",
+  "formatosDisponibles": ["DOS_D", "IMAX"],
+  "urlPoster": "https://example.com/matrix.jpg",
+  "fechaEstreno": "1999-03-31"
+}
+
+### JSON mal escrito -> 400
+POST http://localhost:8080/api/peliculas
+Content-Type: application/json
+
+{ "titulo": "Matrix",
+
+### Modificar la pelicula
+PUT http://localhost:8080/api/peliculas/3
+Content-Type: application/json
+
+{
+  "titulo": "Matrix Recargado",
+  "sinopsis": "Neo y la resistencia siguen peleando contra las maquinas.",
+  "duracionMinutos": 138,
+  "clasificacion": "+13",
+  "genero": "CIENCIA_FICCION",
+  "idioma": "Subtitulada",
+  "formatosDisponibles": ["DOS_D", "IMAX"],
+  "urlPoster": "https://example.com/matrix.jpg",
+  "fechaEstreno": "2003-05-15"
+}
+
+### Borrar la pelicula (baja logica, queda con activa = false)
+DELETE http://localhost:8080/api/peliculas/3
+
+
+# ---------- Clientes ----------
+
+### Registrar cliente (queda con id 1)
+POST http://localhost:8080/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Lucas",
+  "apellido": "Perez",
+  "email": "lucas@example.com",
+  "password": "1234",
+  "telefono": "1122334455"
+}
+
+### Cliente con datos invalidos -> 400 con el detalle de cada campo
+POST http://localhost:8080/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "",
+  "apellido": "",
+  "email": "esto-no-es-un-email",
+  "password": "1234"
+}
+
+### Mismo email de nuevo -> 409
+POST http://localhost:8080/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Otro",
+  "apellido": "Lucas",
+  "email": "lucas@example.com",
+  "password": "1234"
+}
+
+
+# ---------- Funciones y compras ----------
+
+### Ver funciones (se pueden filtrar: ?peliculaId=2&fecha=2026-09-25&formato=DOS_D)
+GET http://localhost:8080/api/funciones
+
+### Butacas de la funcion 2 (Intensamente 2, Sala 1)
+GET http://localhost:8080/api/funciones/2/butacas-disponibles
+
+### Comprar las butacas A1 y A2 con la promo (queda como compra 1)
+POST http://localhost:8080/api/compras
+Content-Type: application/json
+
+{
+  "clienteId": 1,
+  "funcionId": 2,
+  "butacasIds": [1, 2],
+  "codigoPromocion": "ESTRENO10"
+}
+
+### Intentar comprar otra vez la A1 -> 409, ya esta vendida
+POST http://localhost:8080/api/compras
+Content-Type: application/json
+
+{
+  "clienteId": 1,
+  "funcionId": 2,
+  "butacasIds": [1]
+}
+
+### Pagar la compra 1
+POST http://localhost:8080/api/compras/1/pagos
+Content-Type: application/json
+
+{
+  "metodoPago": "MERCADO_PAGO",
+  "datosPagoToken": "token-demo"
+}
+
+### Ver la compra (ahora CONFIRMADA)
+GET http://localhost:8080/api/compras/1
+
+### Cancelar la compra
+PATCH http://localhost:8080/api/compras/1/cancelar
+
+### Despues de cancelar, la A1 se puede volver a comprar (queda como compra 2)
+POST http://localhost:8080/api/compras
+Content-Type: application/json
+
+{
+  "clienteId": 1,
+  "funcionId": 2,
+  "butacasIds": [1]
+}
+
+### Pago rechazado (cualquier token que contenga "rechazar")
+POST http://localhost:8080/api/compras/2/pagos
+Content-Type: application/json
+
+{
+  "metodoPago": "MERCADO_PAGO",
+  "datosPagoToken": "rechazar"
+}
+
+### Compras del cliente
+GET http://localhost:8080/api/clientes/1/compras
