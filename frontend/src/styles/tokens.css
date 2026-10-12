@@ -1,0 +1,90 @@
+:root {
+  color-scheme: dark;
+
+  --color-bg: #08080c;
+  --color-surface: #111118;
+  --color-surface-2: #181822;
+  --color-surface-3: #22222e;
+  --color-border: #2a2a38;
+  --color-border-strong: #3c3c50;
+
+  --color-text: #f5f5f7;
+  --color-text-2: #b6b6c8;
+  --color-text-3: #8e8ea4;
+
+  --color-primary: #e11d48;
+  --color-primary-hover: #f43f5e;
+  --color-primary-press: #be123c;
+  --color-primary-soft: rgba(225, 29, 72, 0.16);
+  --color-primary-track: rgba(225, 29, 72, 0.22);
+  --color-on-primary: #ffffff;
+
+  --color-gold: #f5b301;
+  --color-gold-hover: #ffc629;
+  --color-gold-soft: rgba(245, 179, 1, 0.14);
+  --color-on-gold: #1a1300;
+
+  --color-success: #22c55e;
+  --color-success-soft: rgba(34, 197, 94, 0.14);
+  --color-warning: #f59e0b;
+  --color-warning-soft: rgba(245, 158, 11, 0.14);
+  --color-danger: #f87171;
+  --color-danger-solid: #dc2626;
+  --color-danger-soft: rgba(239, 68, 68, 0.14);
+  --color-info: #38bdf8;
+  --color-info-soft: rgba(56, 189, 248, 0.12);
+
+  --scrim: rgba(4, 4, 8, 0.72);
+
+  --font-display: 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --glow-primary: 0 8px 28px rgba(225, 29, 72, 0.35);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --dur-1: 150ms;
+  --dur-2: 220ms;
+  --dur-3: 320ms;
+
+  --z-nav: 40;
+  --z-drawer: 60;
+  --z-modal: 80;
+  --z-toast: 100;
+
+  --nav-h: 72px;
+  --contenedor: 1240px;
+  --gutter: 16px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 32px;
+  }
+}

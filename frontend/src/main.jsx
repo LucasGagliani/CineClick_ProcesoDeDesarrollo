@@ -1,0 +1,25 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import App from './App';
+import './styles/tokens.css';
+import './styles/base.css';
+import './styles/componentes.css';
+import './styles/layout.css';
+import './styles/paginas.css';
+import './styles/compra.css';
+import './styles/admin.css';
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ToastProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ToastProvider>
+    </BrowserRouter>
+  </StrictMode>,
+);
