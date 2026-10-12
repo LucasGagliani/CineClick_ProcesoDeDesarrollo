@@ -2,6 +2,8 @@ package com.cineclick.exception;
 
 import com.cineclick.dto.ErrorResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
     public ResponseEntity<ErrorResponseDTO> manejarNotFound(RecursoNoEncontradoException ex, HttpServletRequest request) {
@@ -116,6 +120,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> manejarGeneral(Exception ex, HttpServletRequest request) {
+        log.error("Error inesperado en {} {}", request.getMethod(), request.getRequestURI(), ex);
         return construirRespuesta(HttpStatus.INTERNAL_SERVER_ERROR, "Error inesperado en el servidor", request.getRequestURI(), List.of());
     }
 

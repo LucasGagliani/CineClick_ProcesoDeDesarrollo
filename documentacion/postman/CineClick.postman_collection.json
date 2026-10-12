@@ -1,0 +1,2584 @@
+{
+  "info": {
+    "_postman_id": "1d156f79-eb37-4535-bfd8-bb5581481e22",
+    "name": "CineClick - Backend completo",
+    "description": "Ejecutar las carpetas en orden desde 00. El login inicial prepara fechas futuras y datos unicos. Las respuestas guardan los IDs automaticamente en variables de coleccion. Cubre los 32 endpoints del backend, CRUD, compra, pago simulado, cancelacion, recompra y errores esperados. Crea datos de demostracion propios; las bajas finales solo afectan esos datos. No requiere token de autenticacion porque el backend actual no protege endpoints por rol. Cambiar baseUrl en el entorno si se usa otro puerto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Inicio y login",
+      "description": "Empezar aqui en cada ejecucion. Prepara variables nuevas para evitar emails y codigos repetidos.",
+      "item": [
+        {
+          "name": "01 - Login admin e iniciar demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cineclick.com\",\n  \"password\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const stamp = String(Date.now());",
+                  "pm.collectionVariables.set('demoTag', stamp);",
+                  "pm.collectionVariables.set('emailCliente', 'postman.' + stamp + '@example.com');",
+                  "pm.collectionVariables.set('codigoPromocion', 'PM' + stamp);",
+                  "function localDate(days) {",
+                  "  const d = new Date(); d.setDate(d.getDate() + days);",
+                  "  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');",
+                  "}",
+                  "pm.collectionVariables.set('fechaFuncion', localDate(2));",
+                  "pm.collectionVariables.set('inicioFuncion', localDate(2) + 'T18:00:00');",
+                  "pm.collectionVariables.set('inicioPromocion', localDate(-1));",
+                  "pm.collectionVariables.set('finPromocion', localDate(30));",
+                  "for (const key of ['peliculaId','cineId','salaId','clienteId','usuarioId','funcionId','butacaId','compraId','pagoId','recompraId']) pm.collectionVariables.unset(key);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Rol ADMIN', () => pm.expect(pm.response.json().rol).to.eql('ADMIN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Login incorrecto (401 esperado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Esperado: HTTP 401. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cineclick.com\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(401); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Peliculas",
+      "description": "Crear y actualizar una pelicula propia para las funciones de la demo.",
+      "item": [
+        {
+          "name": "01 - Listar peliculas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Crear pelicula",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Pelicula Postman {{demoTag}}\",\n  \"sinopsis\": \"Pelicula creada para probar el backend.\",\n  \"duracionMinutos\": 100,\n  \"clasificacion\": \"ATP\",\n  \"genero\": \"ACCION\",\n  \"idioma\": \"Castellano\",\n  \"formatosDisponibles\": [\n    \"DOS_D\"\n  ],\n  \"urlPoster\": null,\n  \"fechaEstreno\": \"{{inicioPromocion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('peliculaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar pelicula creada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas/{{peliculaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas",
+                "{{peliculaId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Actualizar pelicula",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas/{{peliculaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas",
+                "{{peliculaId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Pelicula actualizada {{demoTag}}\",\n  \"sinopsis\": \"Pelicula creada para probar el backend.\",\n  \"duracionMinutos\": 100,\n  \"clasificacion\": \"ATP\",\n  \"genero\": \"ACCION\",\n  \"idioma\": \"Castellano\",\n  \"formatosDisponibles\": [\n    \"DOS_D\"\n  ],\n  \"urlPoster\": null,\n  \"fechaEstreno\": \"{{inicioPromocion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Filtrar por genero",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas?genero=ACCION",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas"
+              ],
+              "query": [
+                {
+                  "key": "genero",
+                  "value": "ACCION"
+                }
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Cines y salas",
+      "description": "La sala nueva evita ocupar asientos del resto de la base.",
+      "item": [
+        {
+          "name": "01 - Listar cines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Crear cine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cine Postman {{demoTag}}\",\n  \"direccion\": \"Av. Demo 123\",\n  \"ciudad\": \"Buenos Aires\",\n  \"telefono\": \"1140001234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('cineId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar cine",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines/{{cineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines",
+                "{{cineId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Actualizar cine",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines/{{cineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines",
+                "{{cineId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cine Postman {{demoTag}}\",\n  \"direccion\": \"Av. Demo 123\",\n  \"ciudad\": \"Buenos Aires\",\n  \"telefono\": \"1140005678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Filtrar por ciudad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines?ciudad=Buenos%20Aires",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines"
+              ],
+              "query": [
+                {
+                  "key": "ciudad",
+                  "value": "Buenos%20Aires"
+                }
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Agregar sala con butacas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines/{{cineId}}/salas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines",
+                "{{cineId}}",
+                "salas"
+              ]
+            },
+            "description": "La implementacion actual puede devolver id null al crear la sala por cascade. El siguiente GET obtiene y guarda el ID ya persistido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala demo\",\n  \"numero\": 1,\n  \"tipo\": \"TRADICIONAL\",\n  \"cantidadFilas\": 3,\n  \"butacasPorFila\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Capacidad 15', () => pm.expect(pm.response.json().capacidad).to.eql(15));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Listar salas y guardar ID persistido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines/{{cineId}}/salas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines",
+                "{{cineId}}",
+                "salas"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const sala = pm.response.json().find(s => s.numero === 1);",
+                  "pm.test('Sala persistida con ID', () => pm.expect(Boolean(sala && sala.id)).to.eql(true));",
+                  "if (sala && sala.id) pm.collectionVariables.set('salaId', sala.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Clientes",
+      "description": "El ID del cliente es distinto del ID de usuario. Se guardan ambos automaticamente.",
+      "item": [
+        {
+          "name": "01 - Registrar cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cliente\",\n  \"apellido\": \"Postman\",\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"demo1234\",\n  \"telefono\": \"1122334455\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('clienteId', pm.response.json().id);",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('usuarioId', pm.response.json().usuarioId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Listar clientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar cliente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "{{clienteId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Actualizar cliente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "{{clienteId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cliente\",\n  \"apellido\": \"Postman\",\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"demo1234\",\n  \"telefono\": \"1199887766\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Login cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"demo1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Rol CLIENTE', () => pm.expect(pm.response.json().rol).to.eql('CLIENTE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Email repetido (409 esperado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes"
+              ]
+            },
+            "description": "Esperado: HTTP 409. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cliente\",\n  \"apellido\": \"Postman\",\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"demo1234\",\n  \"telefono\": \"1122334455\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(409); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Promociones",
+      "description": "Crea una promocion del 10% vigente con codigo unico. La API no tiene baja ni actualizacion de promociones.",
+      "item": [
+        {
+          "name": "01 - Crear promocion vigente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/promociones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "promociones"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{codigoPromocion}}\",\n  \"descripcion\": \"Demo Postman 10%\",\n  \"porcentajeDescuento\": 10,\n  \"fechaInicio\": \"{{inicioPromocion}}\",\n  \"fechaFin\": \"{{finPromocion}}\",\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Listar promociones activas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/promociones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "promociones"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Funciones y disponibilidad",
+      "description": "Las fechas se calculan al ejecutar el login inicial. Esta funcion tiene una sala propia.",
+      "item": [
+        {
+          "name": "01 - Crear funcion futura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peliculaId\": {{peliculaId}},\n  \"salaId\": {{salaId}},\n  \"fechaHoraInicio\": \"{{inicioFuncion}}\",\n  \"precioBase\": 1000,\n  \"formato\": \"DOS_D\",\n  \"idioma\": \"Castellano\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('funcionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Listar funciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar funcion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones/{{funcionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones",
+                "{{funcionId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Actualizar funcion",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones/{{funcionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones",
+                "{{funcionId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peliculaId\": {{peliculaId}},\n  \"salaId\": {{salaId}},\n  \"fechaHoraInicio\": \"{{inicioFuncion}}\",\n  \"precioBase\": 1000,\n  \"formato\": \"DOS_D\",\n  \"idioma\": \"Subtitulada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Filtrar funciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones?peliculaId={{peliculaId}}&cineId={{cineId}}&ciudad=Buenos%20Aires&fecha={{fechaFuncion}}&formato=DOS_D",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones"
+              ],
+              "query": [
+                {
+                  "key": "peliculaId",
+                  "value": "{{peliculaId}}"
+                },
+                {
+                  "key": "cineId",
+                  "value": "{{cineId}}"
+                },
+                {
+                  "key": "ciudad",
+                  "value": "Buenos%20Aires"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fechaFuncion}}"
+                },
+                {
+                  "key": "formato",
+                  "value": "DOS_D"
+                }
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Una funcion de demo', () => pm.expect(pm.response.json().length).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Horario superpuesto (400 esperado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones"
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peliculaId\": {{peliculaId}},\n  \"salaId\": {{salaId}},\n  \"fechaHoraInicio\": \"{{inicioFuncion}}\",\n  \"precioBase\": 1000,\n  \"formato\": \"DOS_D\",\n  \"idioma\": \"Castellano\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Ver butacas y guardar una VIP libre",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones/{{funcionId}}/butacas-disponibles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones",
+                "{{funcionId}}",
+                "butacas-disponibles"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const butaca = pm.response.json().find(b => b.disponible && b.tipo === 'VIP');",
+                  "pm.test('Hay una VIP disponible', () => pm.expect(Boolean(butaca)).to.eql(true));",
+                  "if (butaca) pm.collectionVariables.set('butacaId', butaca.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Compra y pago aprobado",
+      "description": "Compra una VIP de base 1000: 1300 menos 10% = 1170. El pago es simulado.",
+      "item": [
+        {
+          "name": "01 - Comprar con promocion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"funcionId\": {{funcionId}},\n  \"butacasIds\": [\n    {{butacaId}}\n  ],\n  \"codigoPromocion\": \"{{codigoPromocion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('compraId', pm.response.json().id);",
+                  "pm.test('Pendiente y total 1170', () => { const j = pm.response.json(); pm.expect(j.estado).to.eql('PENDIENTE_PAGO'); pm.expect(j.total).to.eql(1170); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Consultar compra",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{compraId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{compraId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Repetir asiento ocupado (409 esperado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras"
+              ]
+            },
+            "description": "Esperado: HTTP 409. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"funcionId\": {{funcionId}},\n  \"butacasIds\": [\n    {{butacaId}}\n  ],\n  \"codigoPromocion\": \"{{codigoPromocion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(409); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Ver asiento ocupado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones/{{funcionId}}/butacas-disponibles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones",
+                "{{funcionId}}",
+                "butacas-disponibles"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Asiento ocupado', () => pm.expect(pm.response.json().find(b => b.id === Number(pm.collectionVariables.get('butacaId'))).disponible).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Registrar pago aprobado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{compraId}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{compraId}}",
+                "pagos"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metodoPago\": \"MERCADO_PAGO\",\n  \"datosPagoToken\": \"token-demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('pagoId', pm.response.json().id);",
+                  "pm.test('Pago aprobado', () => pm.expect(pm.response.json().estado).to.eql('APROBADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Consultar pago",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos",
+                "{{pagoId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Ver compra confirmada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{compraId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{compraId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Compra confirmada', () => pm.expect(pm.response.json().estado).to.eql('CONFIRMADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Historial del cliente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "{{clienteId}}",
+                "compras"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Cancelacion y pago rechazado",
+      "description": "Cancelar libera la butaca, pero no reintegra dinero. Un pago rechazado bloquea otro intento sobre la misma compra.",
+      "item": [
+        {
+          "name": "01 - Cancelar compra confirmada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{compraId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{compraId}}",
+                "cancelar"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Compra cancelada', () => pm.expect(pm.response.json().estado).to.eql('CANCELADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Cancelar nuevamente (400 esperado)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{compraId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{compraId}}",
+                "cancelar"
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Recomprar la misma butaca",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"funcionId\": {{funcionId}},\n  \"butacasIds\": [\n    {{butacaId}}\n  ],\n  \"codigoPromocion\": \"{{codigoPromocion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('recompraId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Registrar pago rechazado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{recompraId}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{recompraId}}",
+                "pagos"
+              ]
+            },
+            "description": "Esperado: HTTP 201. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metodoPago\": \"TARJETA_CREDITO\",\n  \"datosPagoToken\": \"rechazar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Pago rechazado', () => pm.expect(pm.response.json().estado).to.eql('RECHAZADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Reintentar pago (400 esperado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{recompraId}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{recompraId}}",
+                "pagos"
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metodoPago\": \"TARJETA_CREDITO\",\n  \"datosPagoToken\": \"token-demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Cancelar recompra y liberar butaca",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras/{{recompraId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras",
+                "{{recompraId}}",
+                "cancelar"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Comprobar butaca libre",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones/{{funcionId}}/butacas-disponibles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones",
+                "{{funcionId}}",
+                "butacas-disponibles"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Asiento libre otra vez', () => pm.expect(pm.response.json().find(b => b.id === Number(pm.collectionVariables.get('butacaId'))).disponible).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 - Validaciones y errores",
+      "description": "Estos errores son intencionales. Los tests deben pasar cuando la API devuelve el error esperado.",
+      "item": [
+        {
+          "name": "01 - Cliente invalido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes"
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"apellido\": \"\",\n  \"email\": \"no-es-email\",\n  \"password\": \"1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Butaca repetida en request (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compras"
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"funcionId\": {{funcionId}},\n  \"butacasIds\": [\n    {{butacaId}},\n    {{butacaId}}\n  ],\n  \"codigoPromocion\": \"{{codigoPromocion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Pelicula inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas/9223372036854775806",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas",
+                "9223372036854775806"
+              ]
+            },
+            "description": "Esperado: HTTP 404. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(404); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - ID no numerico (400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas",
+                "abc"
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - JSON mal formado (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas"
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titulo\":",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Formato desconocido (400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones?formato=INVALIDO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones"
+              ],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "INVALIDO"
+                }
+              ]
+            },
+            "description": "Esperado: HTTP 400. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(400); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Endpoint inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/no-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "no-existe"
+              ]
+            },
+            "description": "Esperado: HTTP 404. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(404); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Metodo no soportado (405)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas/{{peliculaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas",
+                "{{peliculaId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 405. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 405', () => pm.response.to.have.status(405));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(405); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 - Bajas de los datos de demo",
+      "description": "Ejecutar al terminar. Solo modifica los IDs creados por esta coleccion. Las bajas son logicas; el historial y la promocion se conservan.",
+      "item": [
+        {
+          "name": "01 - Cancelar funcion",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/funciones/{{funcionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "funciones",
+                "{{funcionId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 204. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Dar de baja pelicula",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas/{{peliculaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas",
+                "{{peliculaId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 204. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar pelicula inactiva",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/peliculas/{{peliculaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "peliculas",
+                "{{peliculaId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 200. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Baja logica', () => pm.expect(pm.response.json().activa).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Dar de baja cine",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cines/{{cineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cines",
+                "{{cineId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 204. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Dar de baja cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "{{clienteId}}"
+              ]
+            },
+            "description": "Esperado: HTTP 204. Ejecutar despues de los requests anteriores para tener los IDs cargados."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Login cliente inactivo (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Esperado: HTTP 401. Ejecutar despues de los requests anteriores para tener los IDs cargados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"demo1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Error estructurado', () => { const j = pm.response.json(); pm.expect(j.status).to.eql(401); pm.expect(typeof j.mensaje).to.eql('string'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
