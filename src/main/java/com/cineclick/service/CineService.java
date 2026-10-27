@@ -62,8 +62,8 @@ public class CineService {
 
     @Transactional
     public SalaResponseDTO agregarSala(Long cineId, SalaRequestDTO dto) {
-        if (dto.cantidadFilas() > 26) {
-            throw new ReglaNegocioException("La cantidad de filas no puede superar 26");
+        if (dto.cantidadFilas() > Sala.MAXIMO_FILAS) {
+            throw new ReglaNegocioException("La cantidad de filas no puede superar " + Sala.MAXIMO_FILAS);
         }
         Cine cine = buscarEntidad(cineId);
         Sala sala = new Sala();
@@ -75,7 +75,7 @@ public class CineService {
                 Butaca butaca = new Butaca();
                 butaca.setFila(String.valueOf((char) ('A' + fila)));
                 butaca.setNumero(numero);
-                butaca.setTipo(numero <= 2 ? TipoButaca.VIP : TipoButaca.NORMAL);
+                butaca.setTipo(numero <= Sala.BUTACAS_VIP_POR_FILA ? TipoButaca.VIP : TipoButaca.NORMAL);
                 sala.agregarButaca(butaca);
             }
         }

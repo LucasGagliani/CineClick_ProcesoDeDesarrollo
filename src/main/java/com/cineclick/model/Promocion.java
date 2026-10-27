@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 
 @Getter
@@ -18,6 +17,9 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "promociones")
 public class Promocion {
+
+    private static final BigDecimal CIEN = BigDecimal.valueOf(100);
+    private static final int DECIMALES_PORCENTAJE = 4;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,7 +48,7 @@ public class Promocion {
     }
 
     public BigDecimal calcularDescuento(BigDecimal total) {
-        BigDecimal factor = BigDecimal.ONE.subtract(porcentajeDescuento.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
-        return total.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal factor = BigDecimal.ONE.subtract(porcentajeDescuento.divide(CIEN, DECIMALES_PORCENTAJE, Dinero.REDONDEO));
+        return Dinero.redondear(total.multiply(factor));
     }
 }

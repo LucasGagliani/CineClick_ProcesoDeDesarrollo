@@ -53,6 +53,10 @@ public class Pago {
         this.fechaPago = LocalDateTime.now();
     }
 
+    public boolean estaAprobado() {
+        return estado == EstadoPago.APROBADO;
+    }
+
     public void rechazar() {
         this.estado = EstadoPago.RECHAZADO;
         this.fechaPago = LocalDateTime.now();

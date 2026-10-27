@@ -29,6 +29,9 @@ import java.util.List;
 )
 public class Sala {
 
+    public static final int MAXIMO_FILAS = 26;
+    public static final int BUTACAS_VIP_POR_FILA = 2;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

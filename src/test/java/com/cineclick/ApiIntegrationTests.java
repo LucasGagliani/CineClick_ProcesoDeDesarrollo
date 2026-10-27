@@ -8,10 +8,15 @@ import com.cineclick.dto.CompraResponseDTO;
 import com.cineclick.dto.ErrorResponseDTO;
 import com.cineclick.dto.FuncionResponseDTO;
 import com.cineclick.dto.LoginRequestDTO;
+import com.cineclick.dto.PagoRequestDTO;
+import com.cineclick.dto.PagoResponseDTO;
 import com.cineclick.dto.PeliculaRequestDTO;
 import com.cineclick.dto.PeliculaResponseDTO;
+import com.cineclick.model.EstadoCompra;
+import com.cineclick.model.EstadoPago;
 import com.cineclick.model.FormatoFuncion;
 import com.cineclick.model.Genero;
+import com.cineclick.model.MetodoPago;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -27,6 +32,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -188,6 +194,50 @@ class ApiIntegrationTests {
     }
 
     @Test
+    void pagoRechazadoDejaPendienteYPagoAprobadoConfirmaLaCompra() {
+        ClienteResponseDTO cliente = restTemplate.postForEntity(
+            url("/api/clientes"),
+            new ClienteRequestDTO("Lucia", "Perez", "lucia.pagos@example.com", "1234", null),
+            ClienteResponseDTO.class
+        ).getBody();
+        assertThat(cliente).isNotNull();
+
+        CompraResponseDTO rechazada = comprarUnaButacaLibre(cliente.id());
+        ResponseEntity<PagoResponseDTO> pagoRechazado = pagar(rechazada.id(), "token-rechazar", PagoResponseDTO.class);
+        assertThat(pagoRechazado.getBody().estado()).isEqualTo(EstadoPago.RECHAZADO);
+        assertThat(buscarCompra(rechazada.id()).estado()).isEqualTo(EstadoCompra.PENDIENTE_PAGO);
+
+        CompraResponseDTO aprobada = comprarUnaButacaLibre(cliente.id());
+        ResponseEntity<PagoResponseDTO> pagoAprobado = pagar(aprobada.id(), "token-ok", PagoResponseDTO.class);
+        assertThat(pagoAprobado.getBody().estado()).isEqualTo(EstadoPago.APROBADO);
+        assertThat(buscarCompra(aprobada.id()).estado()).isEqualTo(EstadoCompra.CONFIRMADA);
+
+        ResponseEntity<ErrorResponseDTO> segundoPago = pagar(aprobada.id(), "token-ok", ErrorResponseDTO.class);
+        assertThat(segundoPago.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void noPermiteCancelarDosVecesNiPagarUnaCompraCancelada() {
+        ClienteResponseDTO cliente = restTemplate.postForEntity(
+            url("/api/clientes"),
+            new ClienteRequestDTO("Mario", "Lopez", "mario.cancela@example.com", "1234", null),
+            ClienteResponseDTO.class
+        ).getBody();
+        assertThat(cliente).isNotNull();
+        CompraResponseDTO compra = comprarUnaButacaLibre(cliente.id());
+
+        assertThat(cancelar(compra.id()).getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ResponseEntity<ErrorResponseDTO> otraVez = cancelar(compra.id());
+        assertThat(otraVez.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(otraVez.getBody().mensaje()).isEqualTo("No se puede cancelar una compra cancelada");
+
+        ResponseEntity<ErrorResponseDTO> pago = pagar(compra.id(), "token-ok", ErrorResponseDTO.class);
+        assertThat(pago.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(pago.getBody().mensaje()).isEqualTo("No se puede confirmar una compra cancelada");
+    }
+
+    @Test
     void filtraFuncionesPorPeliculaYFecha() {
         FuncionResponseDTO funcion = restTemplate.getForObject(url("/api/funciones"), FuncionResponseDTO[].class)[0];
         String filtro = "/api/funciones?peliculaId=" + funcion.peliculaId() + "&fecha=" + funcion.fechaHoraInicio().toLocalDate();
@@ -236,6 +286,37 @@ class ApiIntegrationTests {
             String.class
         );
         assertThat(duplicado.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    private CompraResponseDTO comprarUnaButacaLibre(Long clienteId) {
+        FuncionResponseDTO funcion = restTemplate.getForObject(url("/api/funciones"), FuncionResponseDTO[].class)[0];
+        ButacaResponseDTO butaca = Arrays.stream(restTemplate.getForObject(
+                url("/api/funciones/" + funcion.id() + "/butacas-disponibles"),
+                ButacaResponseDTO[].class
+            ))
+            .filter(ButacaResponseDTO::disponible)
+            .findFirst()
+            .orElseThrow();
+        CompraRequestDTO request = new CompraRequestDTO(clienteId, funcion.id(), List.of(butaca.id()), null);
+        ResponseEntity<CompraResponseDTO> response = restTemplate.postForEntity(url("/api/compras"), request, CompraResponseDTO.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return response.getBody();
+    }
+
+    private <T> ResponseEntity<T> pagar(Long compraId, String token, Class<T> tipoRespuesta) {
+        return restTemplate.postForEntity(
+            url("/api/compras/" + compraId + "/pagos"),
+            new PagoRequestDTO(MetodoPago.TARJETA_CREDITO, token),
+            tipoRespuesta
+        );
+    }
+
+    private ResponseEntity<ErrorResponseDTO> cancelar(Long compraId) {
+        return restTemplate.exchange(url("/api/compras/" + compraId + "/cancelar"), HttpMethod.PATCH, HttpEntity.EMPTY, ErrorResponseDTO.class);
+    }
+
+    private CompraResponseDTO buscarCompra(Long compraId) {
+        return restTemplate.getForObject(url("/api/compras/" + compraId), CompraResponseDTO.class);
     }
 
     private String url(String path) {

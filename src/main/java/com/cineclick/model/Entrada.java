@@ -30,6 +30,8 @@ import java.util.UUID;
 )
 public class Entrada {
 
+    private static final String PREFIJO_CODIGO_QR = "CINECLICK-";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -63,7 +65,7 @@ public class Entrada {
 
     public void generarCodigoQr() {
         if (codigoQr == null || codigoQr.isBlank()) {
-            codigoQr = "CINECLICK-" + UUID.randomUUID();
+            codigoQr = PREFIJO_CODIGO_QR + UUID.randomUUID();
         }
     }
 

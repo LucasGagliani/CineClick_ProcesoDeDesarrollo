@@ -138,7 +138,7 @@ public class DataSeeder implements ApplicationRunner {
                 Butaca butaca = new Butaca();
                 butaca.setFila(String.valueOf((char) ('A' + fila)));
                 butaca.setNumero(numeroButaca);
-                butaca.setTipo(numeroButaca <= 2 ? TipoButaca.VIP : TipoButaca.NORMAL);
+                butaca.setTipo(numeroButaca <= Sala.BUTACAS_VIP_POR_FILA ? TipoButaca.VIP : TipoButaca.NORMAL);
                 sala.agregarButaca(butaca);
             }
         }

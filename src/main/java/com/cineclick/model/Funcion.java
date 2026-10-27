@@ -25,6 +25,8 @@ import java.time.LocalDateTime;
 @Table(name = "funciones")
 public class Funcion {
 
+    private static final long MINUTOS_LIMPIEZA_ENTRE_FUNCIONES = 20;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -61,7 +63,7 @@ public class Funcion {
     @PreUpdate
     public void calcularHorarioFin() {
         if (pelicula != null && fechaHoraInicio != null && pelicula.getDuracionMinutos() != null) {
-            fechaHoraFin = fechaHoraInicio.plusMinutes(pelicula.getDuracionMinutos() + 20L);
+            fechaHoraFin = fechaHoraInicio.plusMinutes(pelicula.getDuracionMinutos() + MINUTOS_LIMPIEZA_ENTRE_FUNCIONES);
         }
     }
 
