@@ -11,4 +11,8 @@ public record ClienteRequestDTO(
     @NotBlank @Size(min = 4, max = 120) String password,
     @Size(max = 40) String telefono
 ) {
+    @Override
+    public String toString() {
+        return "ClienteRequestDTO[credenciales ocultas]";
+    }
 }

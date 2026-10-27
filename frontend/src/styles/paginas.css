@@ -1180,6 +1180,10 @@
   max-width: 760px;
 }
 
+.perfil .panel + .panel {
+  margin-top: var(--space-6);
+}
+
 .no-encontrado {
   display: grid;
   justify-items: center;

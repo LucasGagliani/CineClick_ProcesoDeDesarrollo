@@ -1,7 +1,8 @@
 package com.cineclick.service;
 
 import com.cineclick.dto.ButacaResponseDTO;
-import com.cineclick.dto.DtoMapper;
+import com.cineclick.mapper.CineMapper;
+import com.cineclick.mapper.FuncionMapper;
 import com.cineclick.dto.FuncionRequestDTO;
 import com.cineclick.dto.FuncionResponseDTO;
 import com.cineclick.exception.RecursoNoEncontradoException;
@@ -45,13 +46,13 @@ public class FuncionService {
         LocalDateTime desde = fecha == null ? null : fecha.atStartOfDay();
         LocalDateTime hasta = fecha == null ? null : fecha.plusDays(1).atStartOfDay();
         return funcionRepository.buscarConFiltros(peliculaId, cineId, ciudadFiltro, formato, desde, hasta).stream()
-            .map(DtoMapper::toFuncionResponse)
+            .map(FuncionMapper::toFuncionResponse)
             .toList();
     }
 
     @Transactional(readOnly = true)
     public FuncionResponseDTO buscarPorId(Long id) {
-        return DtoMapper.toFuncionResponse(buscarEntidad(id));
+        return FuncionMapper.toFuncionResponse(buscarEntidad(id));
     }
 
     @Transactional
@@ -59,7 +60,7 @@ public class FuncionService {
         Funcion funcion = new Funcion();
         copiarDatos(dto, funcion);
         validarHorario(funcion, null);
-        return DtoMapper.toFuncionResponse(funcionRepository.save(funcion));
+        return FuncionMapper.toFuncionResponse(funcionRepository.save(funcion));
     }
 
     @Transactional
@@ -67,7 +68,7 @@ public class FuncionService {
         Funcion funcion = buscarEntidad(id);
         copiarDatos(dto, funcion);
         validarHorario(funcion, id);
-        return DtoMapper.toFuncionResponse(funcionRepository.save(funcion));
+        return FuncionMapper.toFuncionResponse(funcionRepository.save(funcion));
     }
 
     @Transactional
@@ -85,7 +86,7 @@ public class FuncionService {
             .map(entrada -> entrada.getButaca().getId())
             .collect(Collectors.toSet());
         return butacaRepository.findBySalaIdAndActivaTrue(funcion.getSala().getId()).stream()
-            .map(butaca -> DtoMapper.toButacaResponse(butaca, !butacasOcupadas.contains(butaca.getId())))
+            .map(butaca -> CineMapper.toButacaResponse(butaca, !butacasOcupadas.contains(butaca.getId())))
             .toList();
     }
 

@@ -5,6 +5,7 @@ import com.cineclick.dto.LoginResponseDTO;
 import com.cineclick.exception.CredencialesInvalidasException;
 import com.cineclick.model.Usuario;
 import com.cineclick.repository.UsuarioRepository;
+import com.cineclick.security.PasswordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,12 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
+    private final PasswordService passwords;
 
     @Transactional(readOnly = true)
     public LoginResponseDTO login(LoginRequestDTO dto) {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(dto.email())
             .orElseThrow(() -> new CredencialesInvalidasException("Email o password incorrectos"));
-        if (!usuario.isActivo() || !usuario.getPassword().equals(dto.password())) {
+        if (!usuario.isActivo() || !passwords.coincide(dto.password(), usuario.getPassword())) {
             throw new CredencialesInvalidasException("Email o password incorrectos");
         }
         return new LoginResponseDTO(

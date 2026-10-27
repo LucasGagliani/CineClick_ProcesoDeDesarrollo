@@ -1,6 +1,6 @@
-# CineClick – Backend
+# CineClick
 
-Backend de CineClick, una app de venta de entradas de cine (estilo Hoyts o Cinemark), para el TPO de Aplicaciones Interactivas. Esta es la etapa 1: API REST con Spring Boot y base de datos SQL. El front llega en la etapa 2.
+Aplicación de venta de entradas de cine para el TPO de Aplicaciones Interactivas. Incluye el backend con Spring Boot y base SQL en la raíz y el frontend React en `frontend/`. Las mejoras de diseño 1 a 5 se conservan; los puntos 6 a 10 se describen en [Implementación de mejoras](documentacion/mejoras-6-a-10.md).
 
 **Stack:** Java 21, Spring Boot 3 (Web, Data JPA, Validation), H2, Lombok y Maven.
 
@@ -16,7 +16,7 @@ En Windows con CMD es `mvnw.cmd spring-boot:run`. También se puede correr `Cine
 
 La API queda en `http://localhost:8080`.
 
-La primera vez que arranca, se cargan datos de prueba: un admin, 2 películas, un cine con 2 salas, 3 funciones y la promo `ESTRENO10`. Las funciones quedan para el día siguiente, así que si pasan unos días conviene borrar la carpeta `data/` y volver a arrancar.
+La primera vez que arranca, se cargan datos de prueba: un admin, 2 películas, un cine con 2 salas, 3 funciones y la promo `ESTRENO10`. Para agregar más datos y funciones futuras sin borrar la base, seguir la sección de datos de demo del [frontend](frontend/README.md).
 
 **Usuario admin:** `admin@cineclick.com` / `admin123`
 
@@ -36,6 +36,8 @@ service     → reglas de negocio
 repository  → acceso a datos (Spring Data JPA, cumple el rol de DAO)
 model       → entidades JPA
 dto         → lo que entra y sale de la API
+mapper      → conversión de entidades a DTOs por área funcional
+security    → codificación y verificación de contraseñas
 exception   → manejo de errores centralizado
 config      → datos de prueba
 ```
@@ -52,7 +54,7 @@ En `documentacion/` están los diagramas UML y `explicacion-del-proyecto.md`, do
 | Películas | `GET`, `POST /api/peliculas` · `GET`, `PUT`, `DELETE /api/peliculas/{id}` |
 | Cines | `GET`, `POST /api/cines` · `GET`, `PUT`, `DELETE /api/cines/{id}` · `GET`, `POST /api/cines/{id}/salas` |
 | Funciones | `GET`, `POST /api/funciones` · `GET`, `PUT`, `DELETE /api/funciones/{id}` · `GET /api/funciones/{id}/butacas-disponibles` |
-| Clientes | `GET`, `POST /api/clientes` · `GET`, `PUT`, `DELETE /api/clientes/{id}` · `GET /api/clientes/{id}/compras` |
+| Clientes | `GET`, `POST /api/clientes` · `GET`, `PUT`, `DELETE /api/clientes/{id}` · `PUT /api/clientes/{id}/password` · `GET /api/clientes/{id}/compras` |
 | Compras | `POST /api/compras` · `GET /api/compras/{id}` · `PATCH /api/compras/{id}/cancelar` |
 | Pagos | `POST /api/compras/{id}/pagos` · `GET /api/pagos/{id}` |
 | Promociones | `GET`, `POST /api/promociones` |

@@ -18,7 +18,14 @@ const ESQUEMA = {
   apellido: [reglas.requerido('Ingresá tu apellido.'), reglas.max(80)],
   email: [reglas.requerido('Ingresá tu email.'), reglas.email(), reglas.max(120)],
   telefono: [reglas.max(40)],
-  password: [reglas.requerido('Para guardar cambios ingresá tu contraseña actual o una nueva.'), reglas.min(4), reglas.max(120)],
+};
+
+const PASSWORD_INICIAL = { passwordActual: '', passwordNueva: '', confirmacion: '' };
+const ESQUEMA_PASSWORD = {
+  passwordActual: [reglas.requerido('Ingresá tu contraseña actual.'), reglas.max(120)],
+  passwordNueva: [reglas.requerido('Ingresá una contraseña nueva.'), reglas.min(4), reglas.max(120)],
+  confirmacion: [reglas.requerido('Repetí la contraseña nueva.'),
+    (valor, valores) => valor !== valores.passwordNueva ? 'Las contraseñas no coinciden.' : null],
 };
 
 export default function Perfil() {
@@ -26,12 +33,14 @@ export default function Perfil() {
   const { sesion, actualizarSesion } = useAuth();
   const toast = useToast();
   const { data, loading, error, recargar } = useFetch(() => api.clientes.obtener(sesion.clienteId), [sesion.clienteId]);
-  const form = useFormulario({ nombre: '', apellido: '', email: '', telefono: '', password: '' }, ESQUEMA);
+  const form = useFormulario({ nombre: '', apellido: '', email: '', telefono: '' }, ESQUEMA);
+  const passwordForm = useFormulario(PASSWORD_INICIAL, ESQUEMA_PASSWORD);
   const [guardando, setGuardando] = useState(false);
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
   const { reiniciar } = form;
 
   useEffect(() => {
-    if (data) reiniciar({ nombre: data.nombre, apellido: data.apellido, email: data.email, telefono: data.telefono ?? '', password: '' });
+    if (data) reiniciar({ nombre: data.nombre, apellido: data.apellido, email: data.email, telefono: data.telefono ?? '' });
   }, [data]);
 
   if (!sesion.clienteId) {
@@ -61,16 +70,36 @@ export default function Perfil() {
         apellido: v.apellido.trim(),
         email: v.email.trim(),
         telefono: v.telefono.trim() || null,
-        password: v.password,
       });
       actualizarSesion({ nombre: `${actualizado.nombre} ${actualizado.apellido}`, email: actualizado.email });
-      form.reiniciar({ ...v, password: '' });
+      form.reiniciar({ nombre: actualizado.nombre, apellido: actualizado.apellido, email: actualizado.email, telefono: actualizado.telefono ?? '' });
       toast.exito('Perfil actualizado', 'Guardamos tus cambios.');
     } catch (err) {
       if (err.status === 409) form.setErrores((prev) => ({ ...prev, email: 'Ese email ya está en uso por otra cuenta.' }));
       else toast.error('No pudimos guardar los cambios', err.message);
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const cambiarPassword = async (e) => {
+    e.preventDefault();
+    if (!passwordForm.validarTodo()) return;
+    setCambiandoPassword(true);
+    try {
+      const { passwordActual, passwordNueva } = passwordForm.valores;
+      await api.clientes.cambiarPassword(sesion.clienteId, { passwordActual, passwordNueva });
+      passwordForm.reiniciar(PASSWORD_INICIAL);
+      toast.exito('Contraseña actualizada', 'Usá la nueva contraseña la próxima vez que ingreses.');
+    } catch (err) {
+      passwordForm.reiniciar(PASSWORD_INICIAL);
+      if (err.status === 401) {
+        passwordForm.setErrores({ passwordActual: 'Revisá tu contraseña actual y que tu cuenta esté activa.' });
+      } else {
+        toast.error('No pudimos cambiar la contraseña', err.message);
+      }
+    } finally {
+      setCambiandoPassword(false);
     }
   };
 
@@ -101,17 +130,28 @@ export default function Perfil() {
             </Field>
           </div>
         </fieldset>
-        <fieldset className="form__grupo">
-          <legend className="panel__titulo">Seguridad</legend>
-          <Field etiqueta="Contraseña" error={form.errores.password} requerido ayuda="Por seguridad, ingresá tu contraseña actual para confirmar los cambios o escribí una nueva para reemplazarla.">
-            <PasswordInput autoComplete="new-password" {...form.props('password')} />
-          </Field>
-        </fieldset>
         <div className="panel__acciones">
           <Button type="submit" cargando={guardando}>
             {!guardando && <FloppyDisk size={18} aria-hidden="true" />}
             Guardar cambios
           </Button>
+        </div>
+      </form>
+      <form className="panel form" onSubmit={cambiarPassword} noValidate ref={passwordForm.formRef}>
+        <fieldset className="form__grupo">
+          <legend className="panel__titulo">Cambiar contraseña</legend>
+          <Field etiqueta="Contraseña actual" error={passwordForm.errores.passwordActual} requerido>
+            <PasswordInput autoComplete="current-password" maxLength={120} {...passwordForm.props('passwordActual')} />
+          </Field>
+          <Field etiqueta="Nueva contraseña" error={passwordForm.errores.passwordNueva} requerido ayuda="Entre 4 y 120 caracteres.">
+            <PasswordInput autoComplete="new-password" maxLength={120} {...passwordForm.props('passwordNueva')} />
+          </Field>
+          <Field etiqueta="Confirmar nueva contraseña" error={passwordForm.errores.confirmacion} requerido>
+            <PasswordInput autoComplete="new-password" maxLength={120} {...passwordForm.props('confirmacion')} />
+          </Field>
+        </fieldset>
+        <div className="panel__acciones">
+          <Button type="submit" cargando={cambiandoPassword}>Cambiar contraseña</Button>
         </div>
       </form>
     </div>

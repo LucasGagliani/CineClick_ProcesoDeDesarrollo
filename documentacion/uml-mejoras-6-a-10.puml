@@ -1,0 +1,76 @@
+@startuml CineClick_Mejoras_6_10
+title CineClick - Integracion de las mejoras 6 a 10
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "Frontend React" {
+  class Perfil
+  class "api.clientes" as ClienteApi
+}
+package "API y servicios" {
+  class ClienteController
+  class ClienteService
+  class AuthService
+  class CineService
+  class CompraService
+  class PagoService
+  class PromocionService
+}
+package "Mappers por area" {
+  class ClienteMapper
+  class CineMapper
+  class CompraMapper
+  class PagoMapper
+  class PeliculaMapper
+  class FuncionMapper
+  class PromocionMapper
+}
+package "Dominio y persistencia" {
+  class SalaFactory
+  class Sala
+  interface ClienteRepository
+  interface FuncionRepository
+  interface CompraRepository
+  class Compra
+}
+package "Credenciales y errores" {
+  class PasswordService
+  class PasswordMigration
+  class GlobalExceptionHandler
+  class ConflictoIntegridad
+}
+package "Componentes conservados de los puntos 1 a 5" {
+  class ValidadorButacas
+  class CalculadoraPrecioEntrada
+  interface PasarelaPago
+}
+
+Perfil --> ClienteApi : perfil y password separados
+ClienteApi --> ClienteController : PUT perfil / PUT password
+ClienteController --> ClienteService
+ClienteService --> ClienteMapper
+ClienteService --> PasswordService
+AuthService --> PasswordService
+PasswordMigration --> PasswordService : migra credenciales antiguas
+CineService --> SalaFactory
+SalaFactory --> Sala : construye sala y butacas
+CineService --> CineMapper
+CompraService --> ClienteRepository
+CompraService --> FuncionRepository
+CompraService --> CompraRepository
+CompraService --> PromocionService : valida vigencia
+CompraService --> ValidadorButacas
+CompraService --> CalculadoraPrecioEntrada
+CompraService --> CompraMapper
+CompraMapper --> PagoMapper
+PagoService --> CompraRepository
+PagoService --> PasarelaPago
+PagoService --> Compra : valida y registra el pago
+PagoService --> PagoMapper
+GlobalExceptionHandler --> ConflictoIntegridad : identifica la restriccion real
+
+note bottom of Compra
+Se conservan las reglas de transicion de estado
+implementadas en los puntos 1 a 5.
+end note
+@enduml

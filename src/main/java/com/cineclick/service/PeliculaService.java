@@ -1,6 +1,6 @@
 package com.cineclick.service;
 
-import com.cineclick.dto.DtoMapper;
+import com.cineclick.mapper.PeliculaMapper;
 import com.cineclick.dto.PeliculaRequestDTO;
 import com.cineclick.dto.PeliculaResponseDTO;
 import com.cineclick.exception.RecursoNoEncontradoException;
@@ -25,12 +25,12 @@ public class PeliculaService {
         List<Pelicula> peliculas = genero == null
             ? peliculaRepository.findByActivaTrue()
             : peliculaRepository.findByGeneroAndActivaTrue(genero);
-        return peliculas.stream().map(DtoMapper::toPeliculaResponse).toList();
+        return peliculas.stream().map(PeliculaMapper::toPeliculaResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public PeliculaResponseDTO buscarPorId(Long id) {
-        return DtoMapper.toPeliculaResponse(buscarEntidad(id));
+        return PeliculaMapper.toPeliculaResponse(buscarEntidad(id));
     }
 
     @Transactional
@@ -38,7 +38,7 @@ public class PeliculaService {
         Pelicula pelicula = new Pelicula();
         copiarDatos(dto, pelicula);
         validarDatos(pelicula);
-        return DtoMapper.toPeliculaResponse(peliculaRepository.save(pelicula));
+        return PeliculaMapper.toPeliculaResponse(peliculaRepository.save(pelicula));
     }
 
     @Transactional
@@ -46,7 +46,7 @@ public class PeliculaService {
         Pelicula pelicula = buscarEntidad(id);
         copiarDatos(dto, pelicula);
         validarDatos(pelicula);
-        return DtoMapper.toPeliculaResponse(peliculaRepository.save(pelicula));
+        return PeliculaMapper.toPeliculaResponse(peliculaRepository.save(pelicula));
     }
 
     @Transactional

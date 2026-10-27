@@ -1,6 +1,6 @@
 package com.cineclick.service;
 
-import com.cineclick.dto.DtoMapper;
+import com.cineclick.mapper.PromocionMapper;
 import com.cineclick.dto.PromocionRequestDTO;
 import com.cineclick.dto.PromocionResponseDTO;
 import com.cineclick.exception.RecursoNoEncontradoException;
@@ -22,7 +22,7 @@ public class PromocionService {
 
     @Transactional(readOnly = true)
     public List<PromocionResponseDTO> listarActivas() {
-        return promocionRepository.findByActivaTrue().stream().map(DtoMapper::toPromocionResponse).toList();
+        return promocionRepository.findByActivaTrue().stream().map(PromocionMapper::toPromocionResponse).toList();
     }
 
     @Transactional
@@ -30,7 +30,7 @@ public class PromocionService {
         validarFechas(dto.fechaInicio(), dto.fechaFin());
         Promocion promocion = new Promocion();
         copiarDatos(dto, promocion);
-        return DtoMapper.toPromocionResponse(promocionRepository.save(promocion));
+        return PromocionMapper.toPromocionResponse(promocionRepository.save(promocion));
     }
 
     @Transactional(readOnly = true)

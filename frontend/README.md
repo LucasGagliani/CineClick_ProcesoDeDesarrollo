@@ -1,6 +1,6 @@
 # CineClick – Frontend
 
-Frontend de CineClick para la etapa 2 del TPO de Aplicaciones Interactivas. Es una SPA (Single Page Application) que consume la API REST del backend de este mismo repositorio, sin modificarlo.
+Frontend de CineClick para la etapa 2 del TPO de Aplicaciones Interactivas. Es una SPA (Single Page Application) que consume la API REST del backend de este mismo repositorio.
 
 **Stack:** React 18, Vite 5, React Router 6, Phosphor Icons y `qrcode.react`. Estilos con CSS propio basado en tokens de diseño (sin frameworks de UI).
 
@@ -72,7 +72,7 @@ npm run preview
   3. Pago con cuenta regresiva de 10 minutos, tarjeta, Mercado Pago o efectivo.
   4. Confirmación con las entradas y su código QR.
 - **Mis compras:** próximas, pendientes de pago e historial; ver entradas con QR, completar o reintentar un pago pendiente y cancelar.
-- **Mi perfil:** edición de datos personales.
+- **Mi perfil:** edición de datos personales sin enviar ni modificar la contraseña y un formulario independiente para cambiarla, verificando la contraseña actual y la confirmación de la nueva.
 
 ### Panel de administración (`/admin`)
 
@@ -96,7 +96,20 @@ Al confirmar el resumen se crea la compra (estado `PENDIENTE_PAGO`) y las butaca
 - el usuario cancela,
 - el usuario sale de la pantalla o cierra la pestaña.
 
-## Estructura
+## Verificación de perfil y contraseña
+
+Con el backend y el frontend ejecutándose, `npm run test:perfil` comprueba el registro, la edición del perfil sin contraseña, confirmaciones distintas, contraseña actual incorrecta, cambio correcto e ingreso con la contraseña nueva en otra sesión. La prueba crea un usuario ficticio con email único. En Windows usa Microsoft Edge; en otros sistemas se puede instalar Chromium con `npx playwright install chromium`.
+
+Si el frontend corre en otro puerto, definir `FRONTEND_URL`. Para usar otro canal de navegador, definir `BROWSER_CHANNEL`.
+
+```powershell
+$env:FRONTEND_URL = 'http://127.0.0.1:5174'
+npm run test:perfil
+```
+
+La edición del perfil usa `PUT /api/clientes/{id}` con nombre, apellido, email y teléfono. El cambio de contraseña usa `PUT /api/clientes/{id}/password` con `passwordActual` y `passwordNueva`; espera una respuesta 204 y limpia sus campos. El backend conserva los accesos anteriores mediante una migración de contraseñas a hashes.
+
+## Estructura de carpetas
 
 ```text
 src/

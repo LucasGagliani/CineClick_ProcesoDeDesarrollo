@@ -2,15 +2,13 @@ package com.cineclick.service;
 
 import com.cineclick.dto.CineRequestDTO;
 import com.cineclick.dto.CineResponseDTO;
-import com.cineclick.dto.DtoMapper;
+import com.cineclick.mapper.CineMapper;
 import com.cineclick.dto.SalaRequestDTO;
 import com.cineclick.dto.SalaResponseDTO;
 import com.cineclick.exception.RecursoNoEncontradoException;
-import com.cineclick.exception.ReglaNegocioException;
-import com.cineclick.model.Butaca;
+import com.cineclick.model.SalaFactory;
 import com.cineclick.model.Cine;
 import com.cineclick.model.Sala;
-import com.cineclick.model.TipoButaca;
 import com.cineclick.repository.CineRepository;
 import com.cineclick.repository.SalaRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,26 +29,26 @@ public class CineService {
         List<Cine> cines = ciudad == null || ciudad.isBlank()
             ? cineRepository.findByActivoTrue()
             : cineRepository.findByCiudadIgnoreCaseAndActivoTrue(ciudad);
-        return cines.stream().map(DtoMapper::toCineResponse).toList();
+        return cines.stream().map(CineMapper::toCineResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public CineResponseDTO buscarPorId(Long id) {
-        return DtoMapper.toCineResponse(buscarEntidad(id));
+        return CineMapper.toCineResponse(buscarEntidad(id));
     }
 
     @Transactional
     public CineResponseDTO crear(CineRequestDTO dto) {
         Cine cine = new Cine();
         copiarDatos(dto, cine);
-        return DtoMapper.toCineResponse(cineRepository.save(cine));
+        return CineMapper.toCineResponse(cineRepository.save(cine));
     }
 
     @Transactional
     public CineResponseDTO actualizar(Long id, CineRequestDTO dto) {
         Cine cine = buscarEntidad(id);
         copiarDatos(dto, cine);
-        return DtoMapper.toCineResponse(cineRepository.save(cine));
+        return CineMapper.toCineResponse(cineRepository.save(cine));
     }
 
     @Transactional
@@ -62,33 +60,18 @@ public class CineService {
 
     @Transactional
     public SalaResponseDTO agregarSala(Long cineId, SalaRequestDTO dto) {
-        if (dto.cantidadFilas() > Sala.MAXIMO_FILAS) {
-            throw new ReglaNegocioException("La cantidad de filas no puede superar " + Sala.MAXIMO_FILAS);
-        }
         Cine cine = buscarEntidad(cineId);
-        Sala sala = new Sala();
-        sala.setNombre(dto.nombre());
-        sala.setNumero(dto.numero());
-        sala.setTipo(dto.tipo());
-        for (int fila = 0; fila < dto.cantidadFilas(); fila++) {
-            for (int numero = 1; numero <= dto.butacasPorFila(); numero++) {
-                Butaca butaca = new Butaca();
-                butaca.setFila(String.valueOf((char) ('A' + fila)));
-                butaca.setNumero(numero);
-                butaca.setTipo(numero <= Sala.BUTACAS_VIP_POR_FILA ? TipoButaca.VIP : TipoButaca.NORMAL);
-                sala.agregarButaca(butaca);
-            }
-        }
+        Sala sala = SalaFactory.crear(dto.nombre(), dto.numero(), dto.tipo(), dto.cantidadFilas(), dto.butacasPorFila());
         cine.agregarSala(sala);
         cineRepository.save(cine);
-        return DtoMapper.toSalaResponse(sala);
+        return CineMapper.toSalaResponse(sala);
     }
 
     @Transactional(readOnly = true)
     public List<SalaResponseDTO> listarSalas(Long cineId) {
         buscarEntidad(cineId);
         return salaRepository.findByCineIdAndActivaTrue(cineId).stream()
-            .map(DtoMapper::toSalaResponse)
+            .map(CineMapper::toSalaResponse)
             .toList();
     }
 

@@ -60,6 +60,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponseDTO> manejarJsonInvalido(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        for (Throwable causa = ex.getCause(); causa != null; causa = causa.getCause()) {
+            if (causa instanceof ReglaNegocioException regla) {
+                return construirRespuesta(HttpStatus.BAD_REQUEST, regla.getMessage(), request.getRequestURI(), List.of());
+            }
+        }
         return construirRespuesta(HttpStatus.BAD_REQUEST, "El JSON enviado no es valido", request.getRequestURI(), List.of());
     }
 
@@ -112,7 +117,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> manejarIntegridad(DataIntegrityViolationException ex, HttpServletRequest request) {
         return construirRespuesta(
             HttpStatus.CONFLICT,
-            "El dato ya existe o esta en uso",
+            ConflictoIntegridad.mensaje(ex),
             request.getRequestURI(),
             List.of()
         );

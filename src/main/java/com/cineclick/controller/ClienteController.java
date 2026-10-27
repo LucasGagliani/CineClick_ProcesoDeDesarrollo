@@ -1,6 +1,8 @@
 package com.cineclick.controller;
 
 import com.cineclick.dto.ClienteRequestDTO;
+import com.cineclick.dto.ClientePerfilRequestDTO;
+import com.cineclick.dto.CambiarPasswordRequestDTO;
 import com.cineclick.dto.ClienteResponseDTO;
 import com.cineclick.dto.CompraResponseDTO;
 import com.cineclick.service.ClienteService;
@@ -47,8 +49,14 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
-    public ClienteResponseDTO actualizar(@PathVariable Long id, @Valid @RequestBody ClienteRequestDTO dto) {
+    public ClienteResponseDTO actualizar(@PathVariable Long id, @Valid @RequestBody ClientePerfilRequestDTO dto) {
         return clienteService.actualizar(id, dto);
+    }
+
+    @PutMapping("/{id}/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cambiarPassword(@PathVariable Long id, @Valid @RequestBody CambiarPasswordRequestDTO dto) {
+        clienteService.cambiarPassword(id, dto);
     }
 
     @DeleteMapping("/{id}")

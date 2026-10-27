@@ -39,6 +39,7 @@ export const api = {
     registrar: (dto) => request('/clientes', { method: 'POST', body: dto }),
     obtener: (id) => request(`/clientes/${id}`),
     actualizar: (id, dto) => request(`/clientes/${id}`, { method: 'PUT', body: dto }),
+    cambiarPassword: (id, dto) => request(`/clientes/${id}/password`, { method: 'PUT', body: dto }),
     eliminar: (id) => request(`/clientes/${id}`, { method: 'DELETE' }),
     compras: (id) => request(`/clientes/${id}/compras`),
   },

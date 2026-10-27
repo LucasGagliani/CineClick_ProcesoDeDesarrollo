@@ -1,6 +1,6 @@
 package com.cineclick.config;
 
-import com.cineclick.model.Butaca;
+import com.cineclick.model.SalaFactory;
 import com.cineclick.model.Cine;
 import com.cineclick.model.EstadoFuncion;
 import com.cineclick.model.FormatoFuncion;
@@ -10,7 +10,6 @@ import com.cineclick.model.Pelicula;
 import com.cineclick.model.Promocion;
 import com.cineclick.model.RolUsuario;
 import com.cineclick.model.Sala;
-import com.cineclick.model.TipoButaca;
 import com.cineclick.model.TipoSala;
 import com.cineclick.model.Usuario;
 import com.cineclick.repository.CineRepository;
@@ -19,6 +18,8 @@ import com.cineclick.repository.PeliculaRepository;
 import com.cineclick.repository.PromocionRepository;
 import com.cineclick.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import com.cineclick.security.PasswordService;
+import org.springframework.core.annotation.Order;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -31,10 +32,12 @@ import java.time.LocalTime;
 import java.util.Set;
 
 @Component
+@Order(0)
 @RequiredArgsConstructor
 public class DataSeeder implements ApplicationRunner {
 
     private final UsuarioRepository usuarioRepository;
+    private final PasswordService passwords;
     private final PeliculaRepository peliculaRepository;
     private final CineRepository cineRepository;
     private final FuncionRepository funcionRepository;
@@ -58,7 +61,7 @@ public class DataSeeder implements ApplicationRunner {
             admin.setNombre("Admin");
             admin.setApellido("CineClick");
             admin.setEmail("admin@cineclick.com");
-            admin.setPassword("admin123");
+            admin.setPassword(passwords.codificar("admin123"));
             admin.setRol(RolUsuario.ADMIN);
             usuarioRepository.save(admin);
         }
@@ -129,20 +132,7 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     private Sala nuevaSala(String nombre, Integer numero, TipoSala tipo, int filas, int butacasPorFila) {
-        Sala sala = new Sala();
-        sala.setNombre(nombre);
-        sala.setNumero(numero);
-        sala.setTipo(tipo);
-        for (int fila = 0; fila < filas; fila++) {
-            for (int numeroButaca = 1; numeroButaca <= butacasPorFila; numeroButaca++) {
-                Butaca butaca = new Butaca();
-                butaca.setFila(String.valueOf((char) ('A' + fila)));
-                butaca.setNumero(numeroButaca);
-                butaca.setTipo(numeroButaca <= Sala.BUTACAS_VIP_POR_FILA ? TipoButaca.VIP : TipoButaca.NORMAL);
-                sala.agregarButaca(butaca);
-            }
-        }
-        return sala;
+        return SalaFactory.crear(nombre, numero, tipo, filas, butacasPorFila);
     }
 
     private void crearFuncion(Pelicula pelicula, Sala sala, LocalDateTime inicio, BigDecimal precio, FormatoFuncion formato, String idioma) {
